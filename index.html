@@ -491,7 +491,8 @@ input[type=email]:focus,input[type=password]:focus,select.fsel:focus{border-colo
 .rchip:hover{background:var(--fill)}
 .rchip:disabled{opacity:.5}
 .hchips{gap:8px}
-.avwrap{padding-top:8px;padding-bottom:8px}
+.avwrap{padding-top:8px;padding-bottom:8px;text-align:left}
+.avisos{text-align:left}
 .avisos h2{font-size:26px;letter-spacing:-.02em;font-weight:700;margin-bottom:14px}
 .avgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
 .aviso{padding:0;overflow:hidden;display:flex;flex-direction:column}
@@ -576,6 +577,25 @@ a.btn{text-decoration:none}
 .pfx{position:absolute;top:6px;right:6px;width:28px;height:28px;background:rgba(255,255,255,.92)}
 .pfadd{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--fill);color:var(--blue);font-size:13px;font-weight:600;cursor:pointer;box-shadow:none;border:1.5px dashed var(--sep2)}
 .pfadd .ic{width:20px;height:20px}
+.guardado{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);z-index:80;display:flex;align-items:center;gap:8px;padding:10px 16px 10px 12px;border-radius:999px;background:rgba(29,29,31,.92);color:#fff;font-size:14px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.guardado.on{opacity:1;transform:translate(-50%,0)}
+.guardado .ic{width:18px;height:18px;color:#30D158}
+.uctl{display:flex;flex-direction:column;gap:10px;padding:0 14px 12px}
+.uctl2{justify-content:space-between;align-items:center;flex-wrap:nowrap;gap:10px}
+.usort{max-width:240px;font-size:14px}
+.ufil{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.ufc{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:5px 12px;font-size:13px;white-space:nowrap;flex:none}
+.ufc .ufn{font-size:11.5px;color:var(--text3);font-weight:600}
+.ufc.on{background:var(--blue);color:#fff}.ufc.on .ufn{color:rgba(255,255,255,.8)}
+.ugh{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 14px;background:#F7F7F9;border-top:1px solid var(--sep);font-size:12.5px;font-weight:600;color:var(--text2)}
+.ugh span+span{font-weight:500;color:var(--text3)}
+.unada{padding:18px 14px}
+.whochip span.uav{display:grid;place-items:center;flex-direction:row;text-align:center;line-height:1;font-size:12px}
+.me span.uav{display:grid;place-items:center;font-size:14px;line-height:1;color:var(--text2)}
+.crumb .csel{min-width:0;max-width:300px;flex:0 1 auto}
+.crumb{overflow:hidden}
+@media(max-width:1600px){.crumb select+span{display:none}}
+@media(max-width:1380px){.tb .pill.net{display:none}}
 .nuevos{box-shadow:var(--sh1),inset 0 0 0 2px #FFD9A8}
 .nuevos h2{display:flex;align-items:center;gap:8px}
 .nrow{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--sep)}
@@ -910,7 +930,19 @@ async function sbFetch(path,o){o=o||{};const h={"apikey":SB_KEY,"Content-Type":"
  if(r.status===401&&o.auth!==false&&o.retry!==false&&ON.tok&&ON.tok.refresh_token){if(await refrescar())return sbFetch(path,Object.assign({},o,{retry:false}))}
  const txt=await r.text();let d=null;try{d=txt?JSON.parse(txt):null}catch(e){}
  if(!r.ok){const e=new Error(traducir(d&&(d.msg||d.message||d.error_description||d.error)||("Error "+r.status)));e.status=r.status;throw e}
+ if(esEscritura(path,o))avisoGuardado();
  return d}
+/* Aviso «Guardado»: sale cada vez que algo queda escrito en la base (no al navegar ni al entrar) */
+const esEscritura=(path,o)=>{const m=String(o.method||"GET").toUpperCase();if(m==="GET")return false;
+ if(path.indexOf("/auth/v1/user")===0)return m==="PUT";
+ if(path.indexOf("/rest/v1/")!==0)return false;const t=path.slice(9);
+ if(t.indexOf("bitacora")===0)return false;
+ if(t.indexOf("rpc/")===0)return /^rpc\/admin_/.test(t);
+ return true};
+let guardadoT=0;
+function avisoGuardado(){let el=document.getElementById("guardadoAviso");
+ if(!el){el=document.createElement("div");el.id="guardadoAviso";el.className="guardado";el.setAttribute("role","status");el.setAttribute("aria-live","polite");document.body.appendChild(el)}
+ el.innerHTML=ic("checkc")+"<span>Guardado en la base de datos</span>";el.classList.add("on");clearTimeout(guardadoT);guardadoT=setTimeout(()=>el.classList.remove("on"),2400)}
 const rest=(p,o)=>sbFetch("/rest/v1/"+p,o);
 async function refrescar(){if(!ON.tok||!ON.tok.refresh_token)return false;
  try{const t=await sbFetch("/auth/v1/token?grant_type=refresh_token",{method:"POST",body:{refresh_token:ON.tok.refresh_token},auth:false,retry:false});ON.tok=t;guardarSesion(t);return true}catch(e){return false}}
@@ -1108,7 +1140,7 @@ function toolbar(){const ter=S.role==="tercero",m=multi(),enCausas=S.screen==="c
   :(m&&!enCausas)||(!m&&ON.activo&&CAUSAS.length>1)?`<div class="crumb"><select class="csel" data-change="abrir" aria-label="Cambiar de causa">${CAUSAS.map(x=>`<option value="${x.id}"${x.id===S.causa?" selected":""}>Exp. ${x.id} · ${x.corta}</option>`).join("")}</select><span class="t2">${TRIB}</span></div>`
   :m?`<div class="crumb"><b>${TRIB}</b><span class="t2">${CAUSAS.length} causas activas</span></div>`
   :`<div class="crumb"><b>${causaAct()?"Exp. "+causaAct().id:"Sin causas vinculadas"}</b><span class="t2">${TRIB}</span></div>`;
- return `<div class="tb">${m&&!enCausas&&!ter?`<button class="btn sec sm tbback" data-act="go" data-v="causas" title="Volver a la lista de causas">${ic("chev","flip")}<span class="hide-s">Causas</span></button>`:""}${crumb}<div class="spacer"></div>
+ return `<div class="tb">${m&&!ter&&["inicio","estado","resumen","expediente","lapsos"].includes(S.screen)?`<button class="btn sec sm tbback" data-act="go" data-v="causas" title="Volver a la lista de causas">${ic("chev","flip")}<span class="hide-s">Causas</span></button>`:""}${crumb}<div class="spacer"></div>
 ${ON.activo&&ON.perfil&&!ON.preview?`<button class="whochip hide-s" data-act="go" data-v="perfil" title="Mi perfil">${avatar(ON.perfil,"sm")}<span><b>${esc(quien())}</b><small>${ROLN[ON.perfil.rol]}</small></span></button>`:`<span class="pill ok hide-s" title="Sesión iniciada con su cuenta">${ic("checkc")}Sesión iniciada</span>`}
 ${ON.activo?'<span class="pill net hide-s"><span class="dot"></span>Base de datos conectada</span>':'<span class="pill net hide-s"><span class="dot"></span>Funciona sin internet</span>'}
 <button class="btn sec sm" data-act="guide">${ic("book")}<span class="hide-s">${ON.activo&&!esAdmin()?"Cómo funciona":"Guía de demostración"}</span><span class="show-s" style="display:none">Guía</span></button>
@@ -1273,6 +1305,9 @@ ${rows.length?`<div class="scroll"><table class="tbl"><tr><th>N°</th><th>Hora</
 function modalFolio(n){const cid=folioCausa();return()=>{const f=folioDe(cid,n);const txt=cid==="DEMO-0001"&&n===47?S.sec.hashText:f.x;return `<div class="overlay" data-act="close"><div class="modal stack" role="dialog" aria-modal="true" aria-label="Folio ${n}"><div class="mhd"><span class="itile sm">${ic("doc")}</span><div style="flex:1"><h2>Folio ${n}: ${esc(f.t)}</h2>${multi()?`<p class="xs t2" style="margin-top:2px">Exp. ${cid}</p>`:""}</div><button class="iconbtn" data-act="close" aria-label="Cerrar">${ic("x")}</button></div><div class="paper">${esc(txt)}</div><p class="small t2">Huella SHA-256:</p><p class="hash">${sha256(txt)}</p><div><button class="btn" data-act="close">Cerrar</button></div></div></div>`}}
 function modalFix(id){return()=>{const i=S.summary.find(x=>x.id===id);return `<div class="overlay"><div class="modal stack" role="dialog" aria-modal="true" aria-label="Corregir"><div class="mhd"><span class="itile sm">${ic("edit")}</span><h2>Corregir la afirmación</h2><button class="iconbtn" data-act="close" aria-label="Cerrar">${ic("x")}</button></div><textarea id="fixt">${esc(i.t)}</textarea><div class="row"><button class="btn" data-act="savefix" data-v="${id}">Guardar corrección</button><button class="btn sec" data-act="close">Cancelar</button></div></div></div>`}}
 function modalMsg(t,b){return()=>`<div class="overlay" data-act="close"><div class="modal stack" role="dialog" aria-modal="true" aria-label="${esc(t)}" style="max-width:480px;text-align:center;align-items:center;padding:32px 28px"><span class="itile lg ${/denegado/i.test(t)?"gray":""}">${ic(/denegado/i.test(t)?"lock":/voz/i.test(t)?"vol":/^no se/i.test(t)?"alert":"checkc")}</span><h2>${esc(t)}</h2><p class="t2">${esc(b)}</p><div><button class="btn" data-act="close">Cerrar</button></div></div></div>`}
+const ROLORD=["admin","juez","secretaria","abogado","justiciable","tercero"];
+const diaDe=d=>{const f=new Date(d),h=new Date(),k=x=>x.getFullYear()+"-"+x.getMonth()+"-"+x.getDate();if(isNaN(f))return"Sin fecha";if(k(f)===k(h))return"Hoy";const a=new Date(h);a.setDate(h.getDate()-1);if(k(f)===k(a))return"Ayer";const t=f.toLocaleDateString("es-VE",{weekday:"long",day:"numeric",month:"long",year:"numeric"});return t.charAt(0).toUpperCase()+t.slice(1)};
+const horaDe=d=>new Date(d).toLocaleTimeString("es-VE",{hour:"2-digit",minute:"2-digit"});
 function vUsuarios(){
  if(!ON.activo)return denied("Esta sección necesita la base de datos conectada.");
  if(ON.adminErr)return head("Usuarios y permisos")+`<div class="banner bad">${ic("alert")}<p>${esc(ON.adminErr)}</p></div>`;
@@ -1280,11 +1315,23 @@ function vUsuarios(){
  const U=ON.usuarios,u=selU()||U[0],tabP=ON.atab==="perfiles";
  const tabs=`<div class="seg atabs" role="tablist"><button role="tab" class="${tabP?"":"on"}"${tabP?' data-act="atab" data-v="personas"':""}>${ic("users")}Personas</button><button role="tab" class="${tabP?"on":""}"${tabP?"":' data-act="atab" data-v="perfiles"'}>${ic("shield")}Permisos por perfil</button></div>`;
  const nuevos=U.filter(esNuevo),pend=0;
- const lista=U.map(x=>`<button class="urow${u&&x.id===u.id?" cur":""}" data-act="usel" data-v="${x.id}" data-s="${esc(norm(nomU(x)+" "+(x.correo||"")))}">${avatar(x)}<span class="umain"><b>${esc(nomU(x))}${x.id===ON.uid?' <span class="t3">(usted)</span>':""}${esNuevo(x)?' <span class="pill warn nuevo">Nuevo</span>':""}</b><span class="xs t2">Usuario: ${esc(usuarioDe(x.correo))}</span></span><span class="ubad"><span class="pill${x.rol==="admin"?" info":""}">${ROLN[x.rol]}</span>${x.activo?"":`<span class="pill bad">Suspendida</span>`}</span></button>`).join("");
- return head("Usuarios y permisos",`Base de datos de las personas registradas: ${U.length} en total. Asigne a cada una su perfil y lo que puede ver y hacer.`,`<button class="btn sm" data-act="ucrear">${ic("plus")}Crear cuenta</button><button class="btn sec sm" data-act="ucsv">${ic("doc")}Descargar lista</button><button class="btn sec sm" data-act="uref">${ic("refresh")}Actualizar</button>`)+
+ const orden=ON.uorden||"recientes",fil=ON.ufil||"todos",q=norm((ON.uq||"").trim()),ult=x=>(ON.ultimo&&ON.ultimo[x.id])||"";
+ const L=U.filter(x=>fil==="todos"||x.rol===fil),cmpN=(a,b)=>nomU(a).localeCompare(nomU(b),"es");
+ if(orden==="recientes")L.sort((a,b)=>String(b.creado).localeCompare(String(a.creado)));
+ else if(orden==="antiguos")L.sort((a,b)=>String(a.creado).localeCompare(String(b.creado)));
+ else if(orden==="nombre")L.sort(cmpN);
+ else if(orden==="perfil")L.sort((a,b)=>ROLORD.indexOf(a.rol)-ROLORD.indexOf(b.rol)||cmpN(a,b));
+ else L.sort((a,b)=>String(ult(b)).localeCompare(String(ult(a)))||cmpN(a,b));
+ const grupo=x=>orden==="nombre"?(nomU(x).charAt(0).toUpperCase()||"#"):orden==="perfil"?ROLN[x.rol]:orden==="ingreso"?(ult(x)?"Último ingreso: "+diaDe(ult(x)).toLowerCase():"Nunca ha entrado"):diaDe(x.creado);
+ const G=[];L.forEach(x=>{const g=grupo(x),l=G[G.length-1];if(l&&l.g===g)l.l.push(x);else G.push({g,l:[x]})});
+ const ve=x=>!q||norm(nomU(x)+" "+(x.correo||"")).indexOf(q)>=0;
+ const fila=x=>`<button class="urow${u&&x.id===u.id?" cur":""}" data-act="usel" data-v="${x.id}" data-s="${esc(norm(nomU(x)+" "+(x.correo||"")))}"${ve(x)?"":" hidden"}>${avatar(x)}<span class="umain"><b>${esc(nomU(x))}${x.id===ON.uid?' <span class="t3">(usted)</span>':""}${esNuevo(x)?' <span class="pill warn nuevo">Nuevo</span>':""}</b><span class="xs t2">Usuario: ${esc(usuarioDe(x.correo))} · ${orden==="ingreso"?(ult(x)?"entró a las "+horaDe(ult(x)):"todavía no entra"):"se registró "+(orden==="recientes"||orden==="antiguos"?"a las "+horaDe(x.creado):diaDe(x.creado).toLowerCase())}</span></span><span class="ubad"><span class="pill${x.rol==="admin"?" info":""}">${ROLN[x.rol]}</span>${x.activo?"":`<span class="pill bad">Suspendida</span>`}</span></button>`;
+ const lista=G.map(g=>`<div class="ugrp"${g.l.some(ve)?"":" hidden"}><div class="ugh"><span>${esc(g.g)}</span><span>${g.l.length} ${g.l.length===1?"persona":"personas"}</span></div>${g.l.map(fila).join("")}</div>`).join("")||`<p class="small t2 unada">No hay personas con ese perfil.</p>`;
+ const controles=`<div class="uctl"><div class="row uctl2"><select class="csel usort" data-change="uorden" aria-label="Ordenar la lista">${[["recientes","Más recientes primero"],["antiguos","Más antiguos primero"],["nombre","Por nombre (A-Z)"],["perfil","Por perfil"],["ingreso","Por último ingreso"]].map(([k,t])=>`<option value="${k}"${orden===k?" selected":""}>${t}</option>`).join("")}</select><span class="xs t2">${L.length} de ${U.length}</span></div><div class="ufil">${[["todos","Todos"]].concat(ROLORD.map(r=>[r,ROLN[r]])).map(([k,t])=>`<button class="chip ufc${fil===k?" on":""}" data-act="ufil" data-v="${k}">${t}<span class="ufn">${k==="todos"?U.length:U.filter(x=>x.rol===k).length}</span></button>`).join("")}</div></div>`;
+ return head("Usuarios y permisos",`Base de datos de las personas registradas: ${U.length} en total. Asigne a cada una su perfil y lo que puede ver y hacer. Cada cambio se guarda al instante en la base de datos.`,`<button class="btn sm" data-act="ucrear">${ic("plus")}Crear cuenta</button><button class="btn sec sm" data-act="ucsv">${ic("doc")}Descargar lista</button><button class="btn sec sm" data-act="uref">${ic("refresh")}Actualizar</button>`)+
  (pend?`<div class="banner info" style="margin-bottom:16px">${ic("user")}<p class="small"><b>${pend}</b> ${pend===1?"persona registrada como funcionario o abogado espera":"personas registradas como funcionario o abogado esperan"} que le asigne su perfil.</p></div>`:"")+
  `<div style="margin-bottom:16px">${tabs}</div>${nuevos.length&&!tabP?`<div class="card stack nuevos" style="margin-bottom:16px;gap:12px"><div class="row between"><h2>${ic("users")}Nuevos registros</h2><span class="pill warn">${nuevos.length} ${nuevos.length===1?"persona espera":"personas esperan"} su perfil</span></div><p class="small t2">Se registraron en la página y por ahora solo tienen orientación general. Asígneles su perfil: después puede ajustar sus permisos y causas.</p>${nuevos.map(x=>`<div class="nrow">${avatar(x)}<span class="umain"><b>${esc(nomU(x))}</b><span class="xs t2">Usuario: ${esc(usuarioDe(x.correo))} · se registró como ${x.uso?USON[x.uso].toLowerCase():"sin dato"} · ${new Date(x.creado).toLocaleString("es-VE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span></span><span class="row" style="gap:6px">${["juez","secretaria","abogado","justiciable"].map(r=>`<button class="btn sec sm" data-act="asignar" data-v="${x.id}|${r}"${ON.ocupado?" disabled":""}>${ic(RICON[r])}${ROLN[r]}</button>`).join("")}<button class="btn ghost sm" data-act="usel" data-v="${x.id}">Ver detalle${ic("chev")}</button></span></div>`).join("")}</div>`:""}<div class="card stack" style="margin-bottom:16px;gap:12px"><div><h3>Ver la app como...</h3><p class="small t2" style="margin-top:2px">Muestra exactamente lo que ve cada perfil con sus permisos actuales. Abogado y Justiciable se muestran con la causa DEMO-0001.</p></div><div class="row">${["juez","secretaria","abogado","justiciable","tercero"].map(r=>`<button class="btn sec sm" data-act="ver" data-v="${r}">${ic(RICON[r])}${ROLN[r]}</button>`).join("")}</div></div>
- ${tabP?matrizPerfiles():`<div class="adm"><div class="card ulist"><label class="search" style="margin:14px 14px 8px;width:auto">${ic("search")}<input id="fusu" type="text" placeholder="Buscar por nombre o usuario" value="${esc(ON.uq||"")}" autocomplete="off" aria-label="Buscar usuario"></label><div class="urows">${lista}</div></div>
+ ${tabP?matrizPerfiles():`<div class="adm"><div class="card ulist"><label class="search" style="margin:14px 14px 8px;width:auto">${ic("search")}<input id="fusu" type="text" placeholder="Buscar por nombre o usuario" value="${esc(ON.uq||"")}" autocomplete="off" aria-label="Buscar usuario"></label>${controles}<div class="urows">${lista}<p class="small t2 unada usinres" hidden>Nadie coincide con la búsqueda.</p></div></div>
  <div class="card udet">${u?detalleUsuario(u):`<p class="t2">Todavía no hay personas registradas.</p>`}</div></div>`}`;
 }
 function matrizPerfiles(){const roles=["juez","secretaria","abogado","justiciable","tercero"],dis=ON.ocupado?" disabled":"";
@@ -1611,6 +1658,7 @@ function prepararFoto(file){return new Promise((ok,mal)=>{if(!file||!/^image\//.
  img.onerror=()=>{URL.revokeObjectURL(url);mal(new Error("No se pudo leer esa imagen. Pruebe con una foto JPG o PNG."))};img.src=url})}
 document.addEventListener("change",e=>{const t=e.target;if(t.id!=="fotoIn"||!t.files||!t.files[0])return;
  prepararFoto(t.files[0]).then(guardarFoto,err=>{S.modal=modalMsg("No se pudo subir la foto",err.message);render()})});
+A.uorden=v=>{ON.uorden=v};A.ufil=v=>{ON.ufil=v};
 A.ucsv=()=>{const U=ON.usuarios||[];const q=x=>'"'+String(x==null?"":x).replace(/"/g,'""')+'"';
  const f=d=>d?new Date(d).toLocaleString("es-VE"):"";
  const filas=[["Nombre","Usuario","Perfil","Se registró como","Estado","Registrado","Último ingreso","Causas vinculadas"]].concat(U.map(u=>[u.nombre,usuarioDe(u.correo),ROLN[u.rol],u.uso?USON[u.uso]:"",u.activo?"Activa":"Suspendida",f(u.creado),f(ON.ultimo&&ON.ultimo[u.id]),[...(ON.vinc[u.id]||[])].join(" ")]));
@@ -1645,7 +1693,7 @@ A.uvinc=c=>{const u=selU();if(!u||u.rol==="admin")return"keep";const has=(ON.vin
   "Administración: Exp. "+c+(has?" desvinculado de ":" vinculado a ")+nomU(u));return"keep"};
 
 document.addEventListener("submit",e=>{const f=e.target;if(f.dataset&&f.dataset.submit){e.preventDefault();const r=A[f.dataset.submit]();if(r!=="keep")render()}});
-document.addEventListener("input",e=>{if(e.target.id!=="fusu")return;ON.uq=e.target.value;const q=norm(ON.uq.trim());document.querySelectorAll(".urow").forEach(r=>{r.hidden=!!q&&r.dataset.s.indexOf(q)<0})});
+document.addEventListener("input",e=>{if(e.target.id!=="fusu")return;ON.uq=e.target.value;const q=norm(ON.uq.trim());document.querySelectorAll(".urow").forEach(r=>{r.hidden=!!q&&r.dataset.s.indexOf(q)<0});let alguno=false;document.querySelectorAll(".ugrp").forEach(g=>{g.hidden=![...g.querySelectorAll(".urow")].some(r=>!r.hidden);if(!g.hidden)alguno=true});const nr=$(".usinres");if(nr)nr.hidden=alguno});
 
 /* ========== Crear cuenta desde la administración (emergencias) ========== */
 function modalCrear(){return()=>{const d=ON.ucDraft||{},dis=ON.ocupado?" disabled":"";
