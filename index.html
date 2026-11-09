@@ -596,6 +596,15 @@ a.btn{text-decoration:none}
 .crumb{overflow:hidden}
 @media(max-width:1600px){.crumb select+span{display:none}}
 @media(max-width:1380px){.tb .pill.net{display:none}}
+.pr2{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0}
+.pr2 .itile.sm{width:32px;height:32px;border-radius:9px}
+.pr2 .itile.sm .ic{width:17px;height:17px}
+.pinfo{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pinfo b{font-size:15px;font-weight:500}
+.pghd{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+.pghd h3{margin:0}
+.mname{display:block;font-weight:500}.mdesc{display:block;margin-top:2px;font-weight:400}
+.fbtns{gap:8px;flex-wrap:nowrap;flex:none}
 .nuevos{box-shadow:var(--sh1),inset 0 0 0 2px #FFD9A8}
 .nuevos h2{display:flex;align-items:center;gap:8px}
 .nrow{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--sep)}
@@ -878,7 +887,7 @@ function lapsoDe(c){if(!c||!c.inicio)return null;
  while(dias.length<c.lapso){d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1);const w=d.getDay(),k=iso(d);if(w!==0&&w!==6&&!S.off.has(k))dias.push(k)}
  const transcurridos=dias.filter(x=>x<=DEMO_HOY).length;
  return{dias,transcurridos,restantes:c.lapso-transcurridos,vence:dias[c.lapso-1]}}
-function folioDe(cid,n){if(cid==="DEMO-0001")return folio(n);const c=CAUSAS.find(x=>x.id===cid),k=c&&c.folios&&c.folios[n];const t=k?k[0]:"Documento del expediente";return{t,x:(k?k[1]:t+".")+FIC}}
+function folioDe(cid,n){const c=CAUSAS.find(x=>x.id===cid),k=c&&c.folios&&c.folios[n];if(cid==="DEMO-0001"&&!(ON.activo&&k))return folio(n);const t=k?k[0]:"Documento del expediente";return{t,x:(k?k[1]:t+".")+FIC}}
 const folioCausa=()=>S.screen==="seguridad"||S.screen==="tiempo"?"DEMO-0001":S.causa;
 const fCorta=s=>{const d=dt(s);return d.getDate()+" de "+MES[d.getMonth()]};
 function abrirCausa(id){S.causa=id;S.summary=S.sums[id];S.idShown=false;S.chat=[]}
@@ -1199,7 +1208,7 @@ function vInicio(){
   :`<div class="stack" style="gap:6px"><div class="stat md">Sin lapso en curso</div><p class="t2">El plazo para contestar empieza cuando conste la citación de la parte demandada.</p></div>`;
  return head(tec||m?"Exp. "+c.id:"Su causa",c.materia+" · "+TRIB,(m?`<button class="btn sec sm" data-act="go" data-v="causas">${ic("list")}Todas las causas</button>`:"")+(puedeEditarCausa()?`<button class="btn sec sm" data-act="ecausa" data-v="${c.id}">${ic("edit")}Editar causa</button>`:"")+(!m&&puedeCrearCausa()?`<button class="btn sm" data-act="ncausa">${ic("plus")}Nueva causa</button>`:""))+heroInicio(c,L)+
 `<div class="grid g3">
-<div class="card stack kpi"><span class="pill">${ic("cpu")}Reglas</span>${t1}
+<div class="card stack kpi"><span class="pill">${ic("cal")}Lapso y términos</span>${t1}
  <button class="btn ghost" data-act="go" data-v="lapsos">Ver el cálculo${ic("chev")}</button></div>
 <div class="card stack kpi"><span class="pill">${ic("checkc")}IA con validación humana</span>
  <h2><span class="stat num" style="display:block;margin-bottom:4px">${S.summary.filter(x=>x.st==="ok").length}</span>afirmaciones validadas</h2><p class="t2">Cada una remite a su folio de origen.</p>
@@ -1305,6 +1314,8 @@ ${rows.length?`<div class="scroll"><table class="tbl"><tr><th>N°</th><th>Hora</
 function modalFolio(n){const cid=folioCausa();return()=>{const f=folioDe(cid,n);const txt=cid==="DEMO-0001"&&n===47?S.sec.hashText:f.x;return `<div class="overlay" data-act="close"><div class="modal stack" role="dialog" aria-modal="true" aria-label="Folio ${n}"><div class="mhd"><span class="itile sm">${ic("doc")}</span><div style="flex:1"><h2>Folio ${n}: ${esc(f.t)}</h2>${multi()?`<p class="xs t2" style="margin-top:2px">Exp. ${cid}</p>`:""}</div><button class="iconbtn" data-act="close" aria-label="Cerrar">${ic("x")}</button></div><div class="paper">${esc(txt)}</div><p class="small t2">Huella SHA-256:</p><p class="hash">${sha256(txt)}</p><div><button class="btn" data-act="close">Cerrar</button></div></div></div>`}}
 function modalFix(id){return()=>{const i=S.summary.find(x=>x.id===id);return `<div class="overlay"><div class="modal stack" role="dialog" aria-modal="true" aria-label="Corregir"><div class="mhd"><span class="itile sm">${ic("edit")}</span><h2>Corregir la afirmación</h2><button class="iconbtn" data-act="close" aria-label="Cerrar">${ic("x")}</button></div><textarea id="fixt">${esc(i.t)}</textarea><div class="row"><button class="btn" data-act="savefix" data-v="${id}">Guardar corrección</button><button class="btn sec" data-act="close">Cancelar</button></div></div></div>`}}
 function modalMsg(t,b){return()=>`<div class="overlay" data-act="close"><div class="modal stack" role="dialog" aria-modal="true" aria-label="${esc(t)}" style="max-width:480px;text-align:center;align-items:center;padding:32px 28px"><span class="itile lg ${/denegado/i.test(t)?"gray":""}">${ic(/denegado/i.test(t)?"lock":/voz/i.test(t)?"vol":/^no se/i.test(t)?"alert":"checkc")}</span><h2>${esc(t)}</h2><p class="t2">${esc(b)}</p><div><button class="btn" data-act="close">Cerrar</button></div></div></div>`}
+const PDESC={causas:"Ve todas las causas del tribunal y entra a cualquiera",inicio:"Ve el resumen de su causa y cuánto falta para cada plazo",estado:"Ve la etapa, las partes y la línea de tiempo",resumen:"Lee cada actuación explicada, con su folio de origen",expediente:"Ve los folios y documentos de sus causas",lapsos:"Ve cómo se cuentan los días de despacho",orientacion:"Pregunta a Tamara cómo funciona el proceso",tiempo:"Prueba de tiempo: buscar con y sin el resumen",seguridad:"Laboratorio: ataques y huellas digitales",bitacora:"Ve el registro de todo lo que pasa en el sistema",validar_resumen:"Aprueba o corrige los resúmenes antes de mostrarlos",editar_calendario:"Marca los días en que el tribunal no despacha",ver_identificacion:"Ve las cédulas y RIF de las partes",subir_documentos:"Sube escritos y pruebas al expediente digital",restablecer_claves:"Pone una contraseña nueva a quien la olvidó",editar_causas:"Cambia descripción, partes, etapa y lapso de una causa",crear_causas:"Registra causas nuevas en el tribunal",editar_folios:"Corrige el título y el texto de un folio"};
+const PICON={causas:"folder",inicio:"home",estado:"scale",resumen:"file",expediente:"files",lapsos:"cal",orientacion:"chat",tiempo:"timer",seguridad:"shield",bitacora:"list",validar_resumen:"checkc",editar_calendario:"cal",ver_identificacion:"eye",subir_documentos:"upload",restablecer_claves:"lock",editar_causas:"edit",crear_causas:"plus",editar_folios:"doc"};
 const ROLORD=["admin","juez","secretaria","abogado","justiciable","tercero"];
 const diaDe=d=>{const f=new Date(d),h=new Date(),k=x=>x.getFullYear()+"-"+x.getMonth()+"-"+x.getDate();if(isNaN(f))return"Sin fecha";if(k(f)===k(h))return"Hoy";const a=new Date(h);a.setDate(h.getDate()-1);if(k(f)===k(a))return"Ayer";const t=f.toLocaleDateString("es-VE",{weekday:"long",day:"numeric",month:"long",year:"numeric"});return t.charAt(0).toUpperCase()+t.slice(1)};
 const horaDe=d=>new Date(d).toLocaleTimeString("es-VE",{hour:"2-digit",minute:"2-digit"});
@@ -1335,20 +1346,21 @@ function vUsuarios(){
  <div class="card udet">${u?detalleUsuario(u):`<p class="t2">Todavía no hay personas registradas.</p>`}</div></div>`}`;
 }
 function matrizPerfiles(){const roles=["juez","secretaria","abogado","justiciable","tercero"],dis=ON.ocupado?" disabled":"";
- const fila=m=>`<tr><td>${m.nombre}</td>${roles.map(r=>{const on=!!(ON.plant[r]&&ON.plant[r].has(m.clave));return `<td class="c"><button class="sw${on?" on":""}" role="switch" aria-checked="${on}" aria-label="${esc(m.nombre)} para ${ROLN[r]}" data-act="rperm" data-v="${r}|${m.clave}"${dis}><i></i></button></td>`}).join("")}</tr>`;
+ const fila=m=>`<tr><td><b class="mname">${m.nombre}</b><span class="xs t2 mdesc">${PDESC[m.clave]||""}</span></td>${roles.map(r=>{const on=!!(ON.plant[r]&&ON.plant[r].has(m.clave));return `<td class="c"><button class="sw${on?" on":""}" role="switch" aria-checked="${on}" aria-label="${esc(m.nombre)} para ${ROLN[r]}" data-act="rperm" data-v="${r}|${m.clave}"${dis}><i></i></button></td>`}).join("")}</tr>`;
  const grupo=(t,tipo)=>`<tr class="gr"><td colspan="6">${t}</td></tr>`+(ON.mods||[]).filter(m=>m.tipo===tipo).map(fila).join("");
  return `<div class="card stack" style="gap:14px"><div><h2>Permisos por perfil</h2><p class="small t2" style="margin-top:4px">Lo que puede ver y hacer cada perfil. Se aplica a todas las personas con ese perfil, salvo los ajustes que haga a una persona en la pestaña Personas.</p></div>
 <div class="scroll"><table class="tbl mtx"><tr><th>Pantalla o acción</th>${roles.map(r=>`<th class="c">${ic(RICON[r])}<span>${ROLN[r]}</span></th>`).join("")}</tr>${grupo("Pantallas que puede ver","pantalla")}${grupo("Acciones que puede hacer","accion")}</table></div></div>`}
 function detalleUsuario(u){const yo=u.id===ON.uid,adm=u.rol==="admin",dis=ON.ocupado?" disabled":"";
  const pant=(ON.mods||[]).filter(m=>m.tipo==="pantalla"),acc=(ON.mods||[]).filter(m=>m.tipo==="accion"),o=ON.overr[u.id]||{};
- const fila=m=>{const on=efectivo(u,m.clave),aj=o[m.clave]!==undefined;return `<div class="prow"><span>${m.nombre}${aj?` <span class="pill info">Ajustado</span>`:""}</span><button class="sw${on?" on":""}" role="switch" aria-checked="${on}" aria-label="${esc(m.nombre)}" data-act="uperm" data-v="${m.clave}"${adm||!u.activo?" disabled":dis}><i></i></button></div>`};
+ const fila=m=>{const on=efectivo(u,m.clave),aj=o[m.clave]!==undefined;return `<div class="prow pr2${on?" on":""}"><span class="itile sm${on?"":" gray"}">${ic(PICON[m.clave]||"check")}</span><span class="pinfo"><b>${m.nombre}${aj?` <span class="pill info">Ajustado</span>`:""}</b><span class="xs t2">${PDESC[m.clave]||""}</span></span><button class="sw${on?" on":""}" role="switch" aria-checked="${on}" aria-label="${esc(m.nombre)}" data-act="uperm" data-v="${m.clave}"${adm||!u.activo?" disabled":dis}><i></i></button></div>`};
  const vin=ON.vinc[u.id]||new Set();
+ const grupoHd=(t,tipo)=>`<div class="pghd"><h3>${t}</h3>${adm?"":`<span class="row" style="gap:6px"><button class="btn ghost sm" data-act="ubulk" data-v="${tipo}|1"${!u.activo?" disabled":dis}>Activar todo</button><button class="btn ghost sm" data-act="ubulk" data-v="${tipo}|0"${!u.activo?" disabled":dis}>Quitar todo</button></span>`}</div>`;
  return `<div class="row" style="gap:14px;flex-wrap:nowrap;align-items:center">${avatar(u,"lg")}<div style="min-width:0;flex:1">${ON.editNom===u.id?`<div class="nedit"><input type="text" id="uNombre" value="${esc(u.nombre||"")}" maxlength="80" aria-label="Nombre" data-enter="unomsave"><button class="btn sm" data-act="unomsave"${dis}>Guardar</button><button class="btn sec sm" data-act="unom" data-v="">Cancelar</button></div>`:`<h2 class="nh">${esc(nomU(u))}<button class="iconbtn" data-act="unom" data-v="${u.id}" aria-label="Editar nombre" title="Editar nombre">${ic("edit")}</button></h2>`}<p class="small t2">Usuario: <b>${esc(usuarioDe(u.correo))}</b> · Registrado el ${fLarga(String(u.creado).slice(0,10))}${u.uso?" · Se registró como: "+USON[u.uso]:""}<br>Último ingreso: ${ON.ultimo&&ON.ultimo[u.id]?new Date(ON.ultimo[u.id]).toLocaleString("es-VE",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"}):"todavía no ha entrado"}</p></div>${adm?"":`<button class="btn sec sm" data-act="ver" data-v="u:${u.id}">${ic("eye")}Ver como esta persona</button>`}</div>
 <div class="ugrid"><div class="stack" style="gap:8px"><span class="lbl">Perfil</span>${adm?`<p class="t2 small">Administrador: tiene todos los permisos.</p>`:`<select class="csel" data-change="urol" aria-label="Perfil de ${esc(nomU(u))}"${dis}>${["juez","secretaria","abogado","justiciable","tercero"].map(r=>`<option value="${r}"${u.rol===r?" selected":""}>${ROLN[r]}</option>`).join("")}</select><p class="xs t2">Al cambiar el perfil se cargan sus permisos sugeridos.</p>`}</div>
 <div class="stack" style="gap:8px"><span class="lbl">Cuenta</span><div class="prow" style="padding:6px 0;border:0"><span>${u.activo?"Activa":"Suspendida"}</span><button class="sw${u.activo?" on":""}" role="switch" aria-checked="${u.activo}" aria-label="Cuenta activa" data-act="uact"${yo?" disabled":dis}><i></i></button></div>${yo?`<p class="xs t2">No puede suspender su propia cuenta.</p>`:""}</div></div>
 <div class="gest"><span class="lbl">Modificar la cuenta</span><button class="btn sec sm" data-act="unom" data-v="${u.id}"${dis}>${ic("edit")}Cambiar nombre</button><button class="btn sec sm" data-act="uusu"${dis}>${ic("user")}Cambiar usuario</button><button class="btn sec sm" data-act="uclave"${dis}>${ic("lock")}Restablecer contraseña</button>${yo?"":`<button class="btn sec sm rojo-t" data-act="uborrar"${dis}>${ic("trash")}Eliminar cuenta</button>`}</div>
-<div class="pgrid"><div><h3 class="mb">Pantallas que puede ver</h3>${pant.map(fila).join("")}</div>
-<div><h3 class="mb">Acciones que puede hacer</h3>${acc.map(fila).join("")}${Object.keys(o).length&&!adm?`<button class="btn ghost sm" data-act="ureset"${dis}>${ic("refresh")}Volver a los permisos del perfil</button>`:""}
+<div class="pgrid"><div>${grupoHd("Pantallas que puede ver","pantalla")}${pant.map(fila).join("")}</div>
+<div>${grupoHd("Acciones que puede hacer","accion")}${acc.map(fila).join("")}${Object.keys(o).length&&!adm?`<button class="btn ghost sm" data-act="ureset"${dis}>${ic("refresh")}Volver a los permisos del perfil</button>`:""}
 <h3 style="margin-top:22px">Causas vinculadas</h3><p class="xs t2" style="margin:4px 0 10px">Para Abogado y Justiciable: las causas que puede abrir. Juez y Secretaría ven todas las del tribunal.</p>
 <div class="chips">${CAUSAS.map(c=>`<button class="chip tg${vin.has(c.id)?" on":""}" data-act="uvinc" data-v="${c.id}"${adm?" disabled":dis}>${vin.has(c.id)?ic("check"):""}Exp. ${c.id} · ${c.corta}</button>`).join("")}</div></div></div>`;
 }
@@ -1377,7 +1389,7 @@ function vPerfil(){if(!ON.activo||!ON.perfil)return denied("Inicie sesión para 
 <p class="t2">Usuario: <b>${esc(usuarioDe(p.correo))}</b> · Perfil: <b>${ROLN[p.rol]}</b>${p.uso?" · Se registró como "+USON[p.uso].toLowerCase():""}</p>
 <div class="row" style="margin-top:10px"><label class="btn${ON.ocupado?" dis":""}" for="fotoIn">${ic("user")}${p.foto?"Cambiar foto":"Subir foto"}</label><input type="file" id="fotoIn" accept="image/*" hidden>${p.foto?`<button class="btn sec" data-act="quitarfoto"${dis}>${ic("trash")}Quitar foto</button>`:""}<button class="btn sec" data-act="miclave"${dis}>${ic("lock")}Cambiar mi contraseña</button></div>
 <p class="xs t3">En el teléfono puede tomarla con la cámara. La foto se recorta en cuadrado y se guarda en pequeño.</p></div></div>
-<div class="card stack" style="margin-top:16px"><h3>Lo que puede hacer en Tamara</h3><div class="chips">${(ON.mods||[]).length?"":""}${[...ON.perm].map(k=>`<span class="pill">${ic("checkc")}${{causas:"Causas del tribunal",inicio:"Inicio",estado:"Estado de la causa",resumen:"Resumen con folios",lapsos:"Control de lapsos",orientacion:"Orientación",tiempo:"Prueba de tiempo",seguridad:"Laboratorio de seguridad",bitacora:"Bitácora",expediente:"Expediente digital",subir_documentos:"Subir documentos",validar_resumen:"Validar resúmenes",editar_calendario:"Editar el calendario",ver_identificacion:"Ver identificación de las partes",restablecer_claves:"Restablecer contraseñas",editar_causas:"Editar causas",crear_causas:"Crear causas"}[k]||k}</span>`).join("")}</div><p class="xs t3">Lo decide el administrador. Si necesita algo más, pídaselo.</p></div>${tarjetaClaves()}`}
+<div class="card stack" style="margin-top:16px"><h3>Lo que puede hacer en Tamara</h3><div class="chips">${(ON.mods||[]).length?"":""}${[...ON.perm].map(k=>`<span class="pill">${ic("checkc")}${{causas:"Causas del tribunal",inicio:"Inicio",estado:"Estado de la causa",resumen:"Resumen con folios",lapsos:"Control de lapsos",orientacion:"Orientación",tiempo:"Prueba de tiempo",seguridad:"Laboratorio de seguridad",bitacora:"Bitácora",expediente:"Expediente digital",subir_documentos:"Subir documentos",validar_resumen:"Validar resúmenes",editar_calendario:"Editar el calendario",ver_identificacion:"Ver identificación de las partes",restablecer_claves:"Restablecer contraseñas",editar_causas:"Editar causas",crear_causas:"Crear causas",editar_folios:"Modificar folios"}[k]||k}</span>`).join("")}</div><p class="xs t3">Lo decide el administrador. Si necesita algo más, pídaselo.</p></div>${tarjetaClaves()}`}
 function tarjetaClaves(){if(!puede("restablecer_claves")||(!ON.preview&&ON.perfil.rol==="admin"))return"";const dis=ON.ocupado?" disabled":"";
  if(ON.claveDe!==ON.uid){ON.claveDe=ON.uid;ON.claveLista=null;rest("rpc/personas_para_clave",{method:"POST",body:{}}).then(r=>{ON.claveLista=r||[]},e=>{ON.claveLista=[];ON.claveErr=e.message}).then(()=>render())}
  const l=ON.claveLista;
@@ -1387,14 +1399,14 @@ function vExpediente(){if(!ON.activo)return denied("El expediente digital necesi
  const c=causaAct(),docs=c.docs||[],dis=ON.subiendo?" disabled":"",sub=puede("subir_documentos"),sig=siguienteFolio(c);
  const textos=Object.keys(c.folios||{}).map(n=>({n:+n,t:c.folios[n][0]}));
  const filas=textos.concat(docs.map(d=>({n:d.folio,doc:d}))).sort((a,b)=>a.n-b.n);
- return head("Expediente digital","Exp. "+c.id+" · "+filas.length+" folios. Los documentos se guardan en la nube y no se pueden modificar.")+
+ return head("Expediente digital","Exp. "+c.id+" · "+filas.length+" folios. Los documentos subidos se guardan en la nube y no se pueden modificar."+(puedeEditarFolio()?" Los folios de texto los puede corregir: cada cambio queda en la bitácora.":""))+
  (sub?`<div class="card stack"><div class="row between"><h2>Subir documento</h2><span class="pill info">${ic("hash")}Quedará como folio ${sig}</span></div>
 <div class="upgrid"><input type="text" id="dTitulo" placeholder="Título (por ejemplo: Escrito de promoción de pruebas)" maxlength="200" value="${esc(ON.docTitulo||"")}"${dis}>
 <label class="drop${ON.subiendo?" dis":""}" for="dArchivo"><span class="itile sm">${ic("upload")}</span><span id="dNombre">${ON.archivoNombre?esc(ON.archivoNombre):"Elegir PDF, JPG o PNG (máx. 10 MB)"}</span></label><input type="file" id="dArchivo" accept="application/pdf,image/jpeg,image/png" hidden>
 <button class="btn" data-act="subirdoc"${dis}>${ic("upload")}${ON.subiendo?"Subiendo...":"Subir al expediente"}</button></div>
 <p class="xs t3">Antes de subirlo se calcula su huella SHA-256. Queda registrado quién lo subió y cuándo, y se anota en la bitácora. En el teléfono puede fotografiar el documento.</p></div>`:"")+
  `<div class="card clist" style="margin-top:16px"><div class="chead"><h2>Folios del expediente</h2>${sub?"":`<span class="pill">${ic("lock")}Solo quien tiene permiso puede subir documentos</span>`}</div>
-${filas.length?filas.map(f=>f.doc?filaDoc(f.doc):`<div class="frow"><span class="fnum num">${f.n}</span><span class="fmain"><b>${esc(f.t)}</b><span class="xs t2">Texto del expediente</span></span><button class="btn sec sm" data-act="folio" data-v="${f.n}">${ic("eye")}Ver</button></div>`).join(""):`<p class="t2" style="padding:16px 20px">Todavía no hay folios.</p>`}</div>`}
+${filas.length?filas.map(f=>f.doc?filaDoc(f.doc):`<div class="frow"><span class="fnum num">${f.n}</span><span class="fmain"><b>${esc(f.t)}</b><span class="xs t2">Texto del expediente</span></span><span class="row fbtns">${puedeEditarFolio()?`<button class="btn sec sm" data-act="efolio" data-v="${f.n}">${ic("edit")}Modificar</button>`:""}<button class="btn sec sm" data-act="folio" data-v="${f.n}">${ic("eye")}Ver</button></span></div>`).join(""):`<p class="t2" style="padding:16px 20px">Todavía no hay folios.</p>`}</div>`}
 function filaDoc(d){const tipo=/pdf/.test(d.tipo)?"PDF":"Imagen";
  return `<div class="frow"><span class="fnum num up">${d.folio}</span><span class="fmain"><b>${esc(d.titulo)}</b><span class="xs t2">${tipo} · ${tamTxt(d.tamano)} · subido por ${esc(d.subido_nombre||"sin dato")} el ${new Date(d.subido_en).toLocaleString("es-VE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span><span class="xs t3">Huella ${d.huella.slice(0,16)}...</span></span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sec sm" data-act="abrirdoc" data-v="${d.id}">${ic("eye")}Abrir</button><button class="btn sec sm" data-act="verifdoc" data-v="${d.id}">${ic("checkc")}Verificar</button></span></div>`}
 const tamTxt=b=>b>1048576?(b/1048576).toFixed(1)+" MB":Math.max(1,Math.round(b/1024))+" KB";
@@ -1658,6 +1670,12 @@ function prepararFoto(file){return new Promise((ok,mal)=>{if(!file||!/^image\//.
  img.onerror=()=>{URL.revokeObjectURL(url);mal(new Error("No se pudo leer esa imagen. Pruebe con una foto JPG o PNG."))};img.src=url})}
 document.addEventListener("change",e=>{const t=e.target;if(t.id!=="fotoIn"||!t.files||!t.files[0])return;
  prepararFoto(t.files[0]).then(guardarFoto,err=>{S.modal=modalMsg("No se pudo subir la foto",err.message);render()})});
+A.ubulk=v=>{const u=selU();if(!u||u.rol==="admin"||!u.activo)return"keep";const k=v.split("|"),tipo=k[0],quiero=k[1]==="1";
+ const mods=(ON.mods||[]).filter(m=>m.tipo===tipo).map(m=>m.clave),tpl=ON.plant[u.rol]||new Set();
+ const borrar=mods.filter(m=>tpl.has(m)===quiero),poner=mods.filter(m=>tpl.has(m)!==quiero);
+ tarea(async()=>{if(borrar.length)await rest("usuario_permisos?usuario=eq."+u.id+"&modulo=in.("+borrar.join(",")+")",{method:"DELETE",prefer:"return=minimal"});
+  if(poner.length)await rest("usuario_permisos?on_conflict=usuario,modulo",{method:"POST",body:poner.map(m=>({usuario:u.id,modulo:m,permitido:quiero})),prefer:"resolution=merge-duplicates,return=minimal"})},
+  "Administración: "+(tipo==="pantalla"?"todas las pantallas":"todas las acciones")+(quiero?" activadas":" quitadas")+" para "+nomU(u));return"keep"};
 A.uorden=v=>{ON.uorden=v};A.ufil=v=>{ON.ufil=v};
 A.ucsv=()=>{const U=ON.usuarios||[];const q=x=>'"'+String(x==null?"":x).replace(/"/g,'""')+'"';
  const f=d=>d?new Date(d).toLocaleString("es-VE"):"";
@@ -1832,6 +1850,24 @@ A.ecausaok=()=>{const d=ON.cDraft;if(!d)return"keep";const t=k=>String(d[k]==nul
   .then(()=>{ON.ocupado=false;render()});return"keep"}
  rest("causas?id=eq."+encodeURIComponent(d.id),{method:"PATCH",body:v,prefer:"return=representation"})
   .then(async r=>{if(!r||!r.length)throw new Error("La base no aceptó el cambio: su perfil no tiene permiso para editar esta causa.");ON.cDraft=null;await cargarOnline();S.modal=modalMsg("Causa actualizada","Los datos del Exp. "+d.id+" ya están al día para todo el tribunal.")},e=>{ON.cErr=e.message})
+  .then(()=>{ON.ocupado=false;render()});return"keep"};
+
+/* ========== Modificar folios (permiso editar_folios: Juez y Secretaría; el administrador lo da o lo quita) ========== */
+const puedeEditarFolio=()=>!!ON.activo&&puede("editar_folios");
+function modalFolioEd(){return()=>{const d=ON.fDraft||{},dis=ON.ocupado?" disabled":"";
+ return `<div class="overlay"><div class="modal stack" role="dialog" aria-modal="true" aria-label="Modificar folio" style="max-width:680px"><div class="mhd"><span class="itile sm">${ic("doc")}</span><h2>Modificar folio ${d.n}</h2><button class="iconbtn" data-act="close" aria-label="Cerrar">${ic("x")}</button></div>
+<p class="t2 small">Exp. ${esc(d.causa)}. Al guardar se recalcula la huella SHA-256 y la bitácora guarda la huella anterior y la nueva, con su nombre.</p>
+<label class="pfld"><span>Título</span><input type="text" id="feTit" maxlength="200" value="${esc(d.titulo||"")}"></label>
+<label class="pfld"><span>Texto del folio</span><textarea id="feTxt" rows="10" maxlength="20000">${esc(d.texto||"")}</textarea></label>
+${ON.fErr?`<p class="err">${ic("alert")}${esc(ON.fErr)}</p>`:""}
+<div class="row"><button class="btn" data-act="efoliook"${dis}>${ON.ocupado?"Guardando...":"Guardar folio"}</button><button class="btn sec" data-act="close">Cancelar</button></div></div></div>`}}
+A.efolio=v=>{const c=causaAct(),n=+v,k=c&&c.folios&&c.folios[n];if(!k||!puedeEditarFolio())return"keep";ON.fErr="";ON.fDraft={causa:c.id,n,titulo:k[0],texto:k[1]};S.modal=modalFolioEd();setTimeout(()=>{const i=$("#feTit");if(i)i.focus()},0)};
+document.addEventListener("input",e=>{const t=e.target;if(!ON.fDraft)return;if(t.id==="feTit")ON.fDraft.titulo=t.value;else if(t.id==="feTxt")ON.fDraft.texto=t.value});
+A.efoliook=()=>{const d=ON.fDraft;if(!d)return"keep";const ti=String(d.titulo||"").trim(),tx=String(d.texto||"");
+ if(ti.length<2){ON.fErr="Escriba un título de al menos 2 letras.";return}if(!tx.trim()){ON.fErr="El texto del folio no puede quedar vacío.";return}
+ ON.fErr="";ON.ocupado=true;render();
+ rest("folios?causa=eq."+encodeURIComponent(d.causa)+"&numero=eq."+d.n,{method:"PATCH",body:{titulo:ti,texto:tx},prefer:"return=representation"})
+  .then(async r=>{if(!r||!r.length)throw new Error("La base no aceptó el cambio: su perfil no tiene permiso para modificar folios de esta causa.");ON.fDraft=null;await cargarOnline();S.modal=modalMsg("Folio modificado","El folio "+d.n+" quedó guardado. Su huella SHA-256 se recalculó y el cambio quedó en la bitácora.")},e=>{ON.fErr=e.message})
   .then(()=>{ON.ocupado=false;render()});return"keep"};
 
 /* ========== Burbuja de ayuda: orientación para cualquier persona, sin entrar ========== */
