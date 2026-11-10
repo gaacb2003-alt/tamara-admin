@@ -852,7 +852,7 @@ function logEv(accion){const prev=S.log.length?S.log[S.log.length-1].hash:"0".re
  const actor=S.role?ROLES[S.role].nombre:"Sistema";const e={hora,actor,accion,prev};e.hash=sha256(prev+hora+actor+accion);S.log.push(e)}
 function verifyChain(){let p="0".repeat(64);for(let i=0;i<S.log.length;i++){const e=S.log[i];if(e.prev!==p||sha256(p+e.hora+e.actor+e.accion)!==e.hash)return i;p=e.hash}return -1}
 const can=sc=>S.role&&ACCESS[S.role].includes(sc);
-const clear=()=>S.role==="justiciable"||S.role==="tercero"||S.simple;
+const clear=()=>S.role==="tercero"||(S.role==="justiciable"?!S.simple:S.simple);
 
 /* ========== Orientación: respuestas programadas con fuentes cerradas ========== */
 const INT=[
@@ -979,12 +979,14 @@ logEv=function(a){const t=ctxLog&&multi()?a+" · Exp. "+folioCausa():a;const r=_
 /* ========== Conexión con la base de datos (Supabase) ========== */
 const SB_URL="https://kgbwofkyonbrwajkyrke.supabase.co",SB_KEY="sb_publishable_6Y9Te_OcEWNrbGQ48e2U4g_sippJPbS";
 /* Dos páginas salen de este mismo archivo: "tribunal" (todas las personas) y "admin" (solo administración) */
-const VERSION="20261108-232628",MODO="admin",LOCAL=false,URL_TRIB="https://gaacb2003-alt.github.io/tamara/";
+const VERSION="20261109-233451",MODO="admin",LOCAL=false,URL_TRIB="https://gaacb2003-alt.github.io/tamara/";
 
 const CAUSAS_LOCAL=JSON.parse(JSON.stringify(CAUSAS)),ACCESS_LOCAL=JSON.parse(JSON.stringify(ACCESS));
 ROLES.admin={nombre:"Administrador",desc:"Asigna perfiles y permisos a las personas registradas.",quien:"Administrador"};
 SCREENS.push(["usuarios","Usuarios y permisos"]);SCREENS.push(["pagina","Página del tribunal"]);SCREENS.push(["perfil","Mi perfil"]);SCREENS.push(["expediente","Expediente digital"]);
-const ROLN={admin:"Administrador",juez:"Juez",secretaria:"Secretaría",abogado:"Abogado",justiciable:"Justiciable",tercero:"Tercero"};
+const ROLN={admin:"Administrador",juez:"Juez(a)",secretaria:"Secretaria(o)",abogado:"Abogado(a)",justiciable:"Justiciable",tercero:"Asistente"};
+/* los mismos nombres en los textos heredados del original («Vista de…», «Perfil: …») */
+Object.keys(ROLN).forEach(k=>{if(ROLES[k])ROLES[k].nombre=ROLN[k]});if(ROLES.tercero)ROLES.tercero.quien="Asistente del tribunal";
 const USON={funcionario:"Funcionario del tribunal",abogado:"Abogado",ciudadano:"Ciudadano"};
 const ON={gi:null,gdone:{},gtab:"pasos",atab:"personas",activo:false,tok:null,uid:null,perfil:null,perm:new Set(),vista:"login",err:"",msg:"",ocupado:false,form:{},
  usuarios:null,mods:null,plant:{},overr:{},vinc:{},sel:null,uq:"",cargandoAdmin:false,adminErr:"",bit:null,chainDb:null};
@@ -1260,7 +1262,8 @@ function denied(what){return `<div class="card denied"><span class="itile lg gra
 function screen(s){if(ON.activo&&ON.perfil&&!ON.perfil.activo)return suspendida();if(!can(s))return denied("Su perfil ("+ROLES[S.role].nombre+") no tiene permiso para ver esta sección. Esta causa solo está disponible para el tribunal, las partes y sus apoderados.");
  if(["inicio","estado","resumen","lapsos","expediente"].includes(s)&&!(s==="inicio"&&S.role==="tercero")&&!causaAct())return sinCausas();
  return({expediente:vExpediente,perfil:vPerfil,causas:vCausas,usuarios:vUsuarios,pagina:vPagina,inicio:vInicio,estado:vEstado,resumen:vResumen,lapsos:vLapsos,orientacion:vOrient,tiempo:vTiempo,seguridad:vSeg,bitacora:vBit})[s]()}
-const langToggle=()=>S.role==="abogado"||S.role==="juez"||S.role==="secretaria"?`<div class="seg" role="group" aria-label="Tipo de lectura"><button class="${S.simple?"":"on"}"${S.simple?' data-act="simple"':""} aria-pressed="${!S.simple}">Lectura técnica</button><button class="${S.simple?"on":""}"${S.simple?"":' data-act="simple"'} aria-pressed="${S.simple}">Lenguaje claro</button></div>`:"";
+const langToggle=()=>{if(["abogado","juez","secretaria","justiciable"].indexOf(S.role)<0)return"";const cl=clear();
+ return `<div class="seg" role="group" aria-label="Tipo de lectura"><button class="${cl?"":"on"}"${cl?' data-act="simple"':""} aria-pressed="${!cl}">Lectura técnica</button><button class="${cl?"on":""}"${cl?"":' data-act="simple"'} aria-pressed="${cl}">Lenguaje claro</button></div>`};
 
 function vCausas(){
  const rows=CAUSAS.map(c=>({c,L:lapsoDe(c),pend:sumsOf(c.id).filter(x=>x.st!=="ok").length})).sort((a,b)=>(a.L?a.L.vence:"9999").localeCompare(b.L?b.L.vence:"9999"));
@@ -1280,7 +1283,7 @@ ${ic("chev","cchev")}</button>`).join("")}</div>
 }
 function vInicio(){
  const c=causaAct(),L=lapsoDe(c),m=multi();
- if(S.role==="tercero")return head("Bienvenido"+(ON.activo&&ON.perfil.nombre?", "+esc(ON.perfil.nombre.split(" ")[0]):""))+heroInicio(null,null)+(ON.activo?`<div class="banner info" style="margin-bottom:16px">${ic("user")}<p class="small">Su cuenta está activa con acceso de orientación general. El administrador le asignará su perfil y sus causas; cuando lo haga, lo verá al cambiar de pantalla.</p></div>`:"")+`<div class="card stack" style="gap:18px"><div class="row" style="gap:16px;align-items:flex-start;flex-wrap:nowrap">${emb("md")}<p class="big">Como persona ajena a la causa, puede usar la orientación general sobre cómo funciona un proceso. No puede ver expedientes.</p></div><div class="row"><button class="btn" data-act="go" data-v="orientacion">${ic("chat")}Ir a orientación</button>${!ON.activo||ON.preview?`<button class="btn sec" data-act="go" data-v="estado">${ic("lock")}Intentar abrir el expediente</button>`:""}</div></div>`+avisosHTML(ON.avisos,PAG().avisosT);
+ if(S.role==="tercero")return head("Bienvenido"+(ON.activo&&ON.perfil.nombre?", "+esc(ON.perfil.nombre.split(" ")[0]):""))+heroInicio(null,null)+(ON.activo?`<div class="banner info" style="margin-bottom:16px">${ic("user")}<p class="small">Su cuenta está activa con acceso de orientación general. El administrador le asignará su perfil y sus causas; cuando lo haga, lo verá al cambiar de pantalla.</p></div>`:"")+`<div class="card stack" style="gap:18px"><div class="row" style="gap:16px;align-items:flex-start;flex-wrap:nowrap">${emb("md")}<p class="big">Con este perfil puede usar la orientación general sobre cómo funciona un proceso. No puede ver expedientes.</p></div><div class="row"><button class="btn" data-act="go" data-v="orientacion">${ic("chat")}Ir a orientación</button>${!ON.activo||ON.preview?`<button class="btn sec" data-act="go" data-v="estado">${ic("lock")}Intentar abrir el expediente</button>`:""}</div></div>`+avisosHTML(ON.avisos,PAG().avisosT);
  const tec=!clear();
  const t1=L?`<div class="ringrow"><div class="ringbox" role="img" aria-label="${L.transcurridos} de ${c.lapso} días">${ring(L.transcurridos/c.lapso)}<div class="ringc"><b class="num">${L.restantes}</b><span>de ${c.lapso}</span></div></div>
  <p>${tec?"días de despacho restantes para "+c.verbT:"días de despacho quedan para "+c.verbC}</p></div>`
@@ -1510,7 +1513,7 @@ const GUIDE=[
  {g:"Ciberseguridad",t:"Bitácora",d:"Verifique la cadena. Simule una alteración y vuelva a verificar.",r:"secretaria",s:"bitacora"}
 ];
 const COMO=[
- ["users","Cuentas y perfiles","Cada persona crea su cuenta con un usuario y una contraseña. Entra con acceso de orientación general y el administrador le asigna su perfil: Juez, Secretaría, Abogado, Justiciable o Tercero."],
+ ["users","Cuentas y perfiles","Cada persona crea su cuenta con un usuario y una contraseña. Entra con acceso de orientación general y el administrador le asigna su perfil: Juez(a), Secretaria(o), Abogado(a), Justiciable o Asistente."],
  ["shield","Permisos que decide el administrador","Cada perfil trae permisos sugeridos y el administrador puede encender o apagar pantallas y acciones por persona, y vincular causas a abogados y justiciables. La base de datos los hace cumplir, no solo la pantalla."],
  ["user","Cómo se entra","Con su usuario y su contraseña, directo a su perfil. Juez y Secretaría abren cualquier causa del tribunal desde la lista de causas."],
  ["checkc","Qué es real","Las cuentas, los permisos, las validaciones, el calendario y la bitácora se guardan en una base de datos SQL. El cálculo de los días de despacho y la huella SHA-256 de cada documento se calculan de verdad."],
@@ -1520,18 +1523,18 @@ const COMO=[
 /* Guía de demostración del administrador: recorrido conectado a la base */
 
 const GUIA_ON=[
- {g:"Administración",t:"Las cuentas",d:"Cada persona entra con su usuario y su contraseña. Al crear su cuenta queda como Tercero, solo con orientación general, hasta que el administrador le asigne su perfil.",run:()=>irAdmin("personas")},
+ {g:"Administración",t:"Las cuentas",d:"Cada persona entra con su usuario y su contraseña. Al crear su cuenta queda como Asistente, solo con orientación general, hasta que el administrador le asigne su perfil.",run:()=>irAdmin("personas")},
  {g:"Administración",t:"Perfil y permisos de cada persona",d:"Elija una persona: cambie su perfil, encienda o apague pantallas y acciones, vincule sus causas o suspenda la cuenta. Todo se guarda en la base de datos.",run:()=>irAdmin("personas")},
  {g:"Administración",t:"Permisos por perfil",d:"La tabla decide qué puede hacer cada perfil completo. Pruebe apagar una pantalla para un perfil y después véalo con «Ver la app como».",run:()=>irAdmin("perfiles")},
- {g:"Juez",t:"Todas las causas del tribunal",d:"El juez ve las causas activas con sus lapsos y vencimientos, y entra a cualquiera sin repetir nada.",run:()=>verComo("juez","causas")},
- {g:"Juez",t:"Datos de las partes protegidos",d:"La identificación de las partes aparece oculta. Mostrarla queda registrado en la bitácora.",run:()=>verComo("juez","estado")},
- {g:"Secretaría",t:"Validación humana del resumen",d:"Cada afirmación remite a su folio. Apruebe la que está pendiente: queda guardada en la base de datos.",run:()=>verComo("secretaria","resumen")},
- {g:"Secretaría",t:"Expediente digital",d:"Suba un documento PDF o una foto: queda en la nube como folio nuevo, con su huella SHA-256 y anotado en la bitácora. Luego pulse Verificar.",run:()=>verComo("secretaria","expediente")},
- {g:"Secretaría",t:"Control de lapsos",d:"Toque un día del calendario para marcarlo sin despacho: el vencimiento de todas las causas se recalcula.",run:()=>verComo("secretaria","lapsos")},
- {g:"Abogado y justiciable",t:"Lectura técnica del abogado",d:"El abogado ve su causa con lenguaje jurídico y la cita del CPC.",run:()=>verComo("abogado","estado")},
- {g:"Abogado y justiciable",t:"Lenguaje claro para el justiciable",d:"La misma actuación explicada sin tecnicismos para la parte sin formación jurídica.",run:()=>verComo("justiciable","estado")},
- {g:"Abogado y justiciable",t:"«¿Voy a ganar el juicio?»",d:"Tamara no anticipa resultados: se niega y deriva a un abogado o a la Defensa Pública.",run:()=>verComo("justiciable","orientacion","¿Voy a ganar el juicio?")},
- {g:"Datos personales",t:"Un tercero no ve expedientes",d:"La persona ajena a la causa solo accede a orientación general. El intento de abrir el expediente queda registrado.",run:()=>verComo("tercero","estado")},
+ {g:"Juez(a)",t:"Todas las causas del tribunal",d:"El juez ve las causas activas con sus lapsos y vencimientos, y entra a cualquiera sin repetir nada.",run:()=>verComo("juez","causas")},
+ {g:"Juez(a)",t:"Datos de las partes protegidos",d:"La identificación de las partes aparece oculta. Mostrarla queda registrado en la bitácora.",run:()=>verComo("juez","estado")},
+ {g:"Secretaria(o)",t:"Validación humana del resumen",d:"Cada afirmación remite a su folio. Apruebe la que está pendiente: queda guardada en la base de datos.",run:()=>verComo("secretaria","resumen")},
+ {g:"Secretaria(o)",t:"Expediente digital",d:"Suba un documento PDF o una foto: queda en la nube como folio nuevo, con su huella SHA-256 y anotado en la bitácora. Luego pulse Verificar.",run:()=>verComo("secretaria","expediente")},
+ {g:"Secretaria(o)",t:"Control de lapsos",d:"Toque un día del calendario para marcarlo sin despacho: el vencimiento de todas las causas se recalcula.",run:()=>verComo("secretaria","lapsos")},
+ {g:"Abogado(a) y justiciable",t:"Lectura técnica del abogado",d:"El abogado ve su causa con lenguaje jurídico y la cita del CPC.",run:()=>verComo("abogado","estado")},
+ {g:"Abogado(a) y justiciable",t:"Lenguaje claro para el justiciable",d:"La misma actuación explicada sin tecnicismos para la parte sin formación jurídica.",run:()=>verComo("justiciable","estado")},
+ {g:"Abogado(a) y justiciable",t:"«¿Voy a ganar el juicio?»",d:"Tamara no anticipa resultados: se niega y deriva a un abogado o a la Defensa Pública.",run:()=>verComo("justiciable","orientacion","¿Voy a ganar el juicio?")},
+ {g:"Datos personales",t:"El asistente no ve expedientes",d:"Con este perfil solo se accede a orientación general, hasta que la administración le dé más permisos. El intento de abrir el expediente queda registrado.",run:()=>verComo("tercero","estado")},
  {g:"Pruebas en vivo",t:"Ahorro de tiempo",d:"Busque la citación abriendo los folios uno a uno y luego con el resumen. El tiempo se mide en vivo.",run:()=>irPantalla("tiempo")},
  {g:"Pruebas en vivo",t:"Laboratorio de seguridad",d:"Procese el escrito con la instrucción oculta y altere la fecha de un documento: la huella SHA-256 lo detecta.",run:()=>irPantalla("seguridad")},
  {g:"Pruebas en vivo",t:"Bitácora inalterable",d:"Verifique la cadena: cada acción quedó guardada en la base de datos y nadie puede editarla ni borrarla.",run:()=>irPantalla("bitacora")},
@@ -1631,7 +1634,7 @@ A.demo=()=>"keep";
 A.salirdemo=()=>{S.demo=false;S.pending=null};
 /* Acceso rápido de demostración: entra con las cuentas de prueba (clave 1234). Para quitarlo: ACCESO_RAPIDO=false */
 const ACCESO_RAPIDO=true,CLAVE_DEMO="1234";
-const RAPIDO=[["juez","Juez","gavel"],["secretaria","Secretaría","clip"],["abogado","Abogado","brief"],["justiciable","Justiciable","user"],["tercero","Tercero","userx"]];
+const RAPIDO=[["juez","Juez(a)","gavel"],["secretaria","Secretaria(o)","clip"],["abogado","Abogado(a)","brief"],["justiciable","Justiciable","user"],["tercero","Asistente","userx"]];
 A.entrar=()=>entrarCon((($("#lEmail")||{}).value||"").trim(),($("#lPass")||{}).value||"");
 A.rapido=v=>{if(!ACCESO_RAPIDO)return"keep";entrarCon(v,CLAVE_DEMO)};
 function entrarCon(usu,pass){const email=aEmail(usu);ON.form.email=usu;ON.msg="";
@@ -1818,7 +1821,7 @@ A.ucrearok=()=>{const d=ON.ucDraft||{},n=String(d.nombre||"").trim().replace(/\s
 
 /* ========== Editor de la página del tribunal (solo administración) ========== */
 const PCAMPOS=["eyebrow","titulo","frase","chip1","chip2","entrarT","entrarS","avisosT","fotos"];
-const fotosEditables=d=>{const l=Array.isArray(d.fotos)?d.fotos.filter(okFoto):[];return l.length?l.slice():FONDOS_DEF.slice()};
+const fotosEditables=d=>{const l=Array.isArray(d.fotos)?d.fotos.filter(okFoto):[];return l.length?l.slice():(LOCAL&&FONDOS_LOCAL.length?FONDOS_LOCAL:FONDOS_DEF).slice()};
 function borradorPag(){if(!ON.pdraft){ON.pdraft=Object.assign({},PAG());ON.pdraft.fotos=(ON.pdraft.fotos||[]).slice()}return ON.pdraft}
 const pagCambios=()=>{const d=ON.pdraft,a=PAG();return !!d&&PCAMPOS.some(k=>String(d[k]===undefined?"":d[k])!==String(a[k]===undefined?"":a[k]))};
 function vPagina(){const d=borradorPag(),tab=ON.ptab||"portada",dis=ON.ocupado?" disabled":"";
